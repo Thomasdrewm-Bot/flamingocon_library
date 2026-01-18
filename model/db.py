@@ -28,6 +28,10 @@ class Database:
         cur = self.connection.execute(query,params)
         return cur.fetchall()
     
+    # Executemany Wrapper
+    def executemany(self, query, params_list):
+        return self.connection.executemany(query, params_list)
+    
     @contextmanager
     def transaction(self):
         try:

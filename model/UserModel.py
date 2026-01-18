@@ -3,7 +3,6 @@ import bcrypt
 class UserModel:
     def __init__(self,db):
         self.db = db
-        self.cursor = self.db.cursor()
 
     # Create the table if it doesn't exist yet.
     def create_table(self):
@@ -19,6 +18,7 @@ class UserModel:
                         )                        
 
                         """)
+        
      # add users to the table   
     def add_user(self, new_user: tuple = ()):
         sql_query = """
@@ -27,6 +27,17 @@ class UserModel:
             """
         with self.db.transaction():
             self.db.execute(sql_query, new_user)
+
+    # Bulk add users
+    def bulk_add_users(self, users):
+        with self.db.transaction():
+            self.db.executemany(
+                """
+                INSERT INTO users (first_name, last_name, email)
+                VALUES (?, ?, ?)
+                """,
+                users
+            )
 
     # Get users from the table, defaults to sending back all users.
     def get_users(self, user = "All"):
