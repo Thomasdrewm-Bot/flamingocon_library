@@ -103,8 +103,3 @@ class UserModel:
         # Converts and checks the password entered against the stored password
         result = bcrypt.checkpw(entered_pw.encode('utf-8'), user_stored_pw)
         return result
-        
-
-    
-
-
