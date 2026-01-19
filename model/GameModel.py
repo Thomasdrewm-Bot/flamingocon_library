@@ -5,29 +5,49 @@ class GameModel:
 
     # Create the table if it doesn't exist yet.
     def create_table(self):
-        self.db.execute("""
-            CREATE TABLE IF NOT EXISTS games(
-                        id INTEGER PRIMARY KEY,
-                        name VARCHAR(100) NOT NULL
-                        )                        
-                        """)
+        with self.db.transaction():
+            self.db.execute("""
+                CREATE TABLE IF NOT EXISTS games (
+                            game_id INTEGER PRIMARY KEY,
+                            name VARCHAR(100) NOT NULL,
+                            status ENUM('Available', 'Checked Out') NOT NULL
+                            );                        
+                            """)
 
     # Add a game in    
-    def add_game(self, name):
+    def add(self, name):
         sql_query = """
                 INSERT INTO games (name)
-                VALUEs (?)
+                VALUEs (?);
                 """
         with self.db.transaction():
             self.db.execute(sql_query, (name,))
     
     # Add a Bulk CSV of games in
     def bulk_add(self, games):
-        with self.db.trasnaction():
-            self.db.executemany(
-                """
+        sql_query = """
                 INSERT INTO games (name)
-                VALUES (?)
-                """,
-                games
-            )
+                VALUES (?);
+                """
+        with self.db.trasnaction():
+            self.db.executemany(sql_query, games)
+
+    # Update Game Info
+    def update(self,game):
+        sql_query = """
+                UPDATE games
+                SET name = ?
+                WHERE id = ?;
+                """
+        with self.db.transaction():
+            self.db.execute(sql_query, game)
+
+    # Search for games tool
+    def get_games(self, name):
+        sql_query = """
+                SELECT *
+                WHERE name
+                LIKE ?;
+                """
+        name = f"%{name}%"
+        return self.db.fetchall(sql_query, (name,))

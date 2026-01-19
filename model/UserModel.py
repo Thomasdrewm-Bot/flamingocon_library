@@ -6,35 +6,35 @@ class UserModel:
 
     # Create the table if it doesn't exist yet.
     def create_table(self):
-        self.db.execute("""
-            CREATE TABLE IF NOT EXISTS users(
-                        id INTEGER PRIMARY KEY,
-                        first_name VARCHAR(35) NOT NULL,
-                        last_name VARCHAR(35) NOT NULL,
-                        email VARCHAR(255) NOT NULL,
-                        role VARCHAR(20) DEFAULT 'Guest',
-                        password VARCHAR(255),
-                        LastUpdated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                        )                        
+        with self.db.transaction():
+            self.db.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                            user_id INTEGER PRIMARY KEY,
+                            first_name VARCHAR(35) NOT NULL,
+                            last_name VARCHAR(35) NOT NULL,
+                            email VARCHAR(255) NOT NULL,
+                            role VARCHAR(20) DEFAULT 'Guest',
+                            password VARCHAR(255),
+                            LastUpdated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            );                        
+                            """)
 
-                        """)
-        
      # add users to the table   
-    def add_user(self, new_user: tuple = ()):
+    def add(self, new_user: tuple = ()):
         sql_query = """
             INSERT INTO users (first_name, last_name, email)
-            VALUES (?, ?, ?)
+            VALUES (?, ?, ?);
             """
         with self.db.transaction():
             self.db.execute(sql_query, new_user)
 
     # Bulk add users
-    def bulk_add_users(self, users):
+    def bulk_add(self, users):
         with self.db.transaction():
             self.db.executemany(
                 """
                 INSERT INTO users (first_name, last_name, email)
-                VALUES (?, ?, ?)
+                VALUES (?, ?, ?);
                 """,
                 users
             )
@@ -45,7 +45,7 @@ class UserModel:
         if user == "All":
             sql_query = """
                 SELECT * 
-                FROM users
+                FROM users;
                 """
             return self.db.fetchall(sql_query)
         else:
@@ -53,7 +53,7 @@ class UserModel:
                 SELECT *
                 FROM users
                 WHERE first_name LIKE ?
-                AND last_name LIKE ?
+                AND last_name LIKE ?;
                 """
             return self.db.fetchall(sql_query, (user,))
     
@@ -62,7 +62,7 @@ class UserModel:
         sql_query = """
                 SELECT *
                 FROM users
-                WHERE id = ?
+                WHERE user_id = ?;
                 """
         return self.db.fetchone(sql_query, (user_id,))
             
@@ -70,19 +70,20 @@ class UserModel:
     def del_user(self, user_id):
         sql_query = """
                 DELETE FROM users
-                WHERE id is ?
+                WHERE user_id is ?;
                 """
         with self.db.transaction():
             self.db.execute(sql_query, (user_id,))
 
     # Update user information
-    def update_user(self, record):
+    def update(self, record):
         sql_query = """"
                 UPDATE users
                 SET first_name = ?,
                 last_name = ?,
                 email = ?
-                WHERE id = ?"""
+                WHERE user_id = ?;
+                """
         with self.db.transaction():
             self.db.execute(sql_query, record)
 
@@ -91,7 +92,8 @@ class UserModel:
         sql_query ="""
                 UPDATE users
                 SET role = ?,
-                WHERE id = ?"""
+                WHERE user_id = ?;
+                """
         with self.db.transaction():
             self.db.execute(sql_query, (new_role, user_id,))
 
@@ -104,7 +106,7 @@ class UserModel:
         sql_query = """
                 UPDATE users
                 SET password = ?,
-                WHERE id = ?
+                WHERE user_id = ?;
                 """
         with self.db.transaction():
             self.db.execute(sql_query, (hashed_pw, user_id,))
@@ -112,7 +114,7 @@ class UserModel:
     # Verify the user password, return true or false
     def verify_pw(self, user_id, entered_pw):
         # grabs the stored password
-        user_stored_pw = self.db.fetchone("SELECT password FROM users WHERE id = ?", (user_id,))
+        user_stored_pw = self.db.fetchone("SELECT password FROM users WHERE user_id = ?;", (user_id,))
 
         # Converts and checks the password entered against the stored password
         result = bcrypt.checkpw(entered_pw.encode('utf-8'), user_stored_pw)
