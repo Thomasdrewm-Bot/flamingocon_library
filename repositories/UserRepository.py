@@ -10,11 +10,12 @@ class UserModel:
             self.db.execute("""
                 CREATE TABLE IF NOT EXISTS users (
                             user_id INTEGER PRIMARY KEY,
-                            first_name VARCHAR(35) NOT NULL,
-                            last_name VARCHAR(35) NOT NULL,
+                            first_name VARCHAR(50) NOT NULL,
+                            last_name VARCHAR(50) NOT NULL,
                             email VARCHAR(255) NOT NULL,
-                            role VARCHAR(20) DEFAULT 'Guest',
-                            password VARCHAR(255),
+                            role ENUM('Guest', 'Volunteer', 'Staff', 'Staff-Admin') NOT NULL DEFAULT 'Guest',
+                            password BLOB,
+                            username VARCHAR(50),
                             LastUpdated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                             );                        
                             """)
@@ -39,23 +40,21 @@ class UserModel:
                 users
             )
 
-    # Get users from the table, defaults to sending back all users.
-    def get_users(self, user = "All"):
-
-        if user == "All":
-            sql_query = """
-                SELECT * 
-                FROM users;
-                """
-            return self.db.fetchall(sql_query)
-        else:
+    # Get all users from the table
+    def get_all_users(self):
+        return self.db.fetchall("SELECT * FROM users;")
+        
+    # Search for users by name
+    def search_by_name(self, fname, lname):
+            fname = f"%{fname}%"
+            lname = f"%{lname}%"
             sql_query = """
                 SELECT *
                 FROM users
                 WHERE first_name LIKE ?
                 AND last_name LIKE ?;
                 """
-            return self.db.fetchall(sql_query, (user,))
+            return self.db.fetchall(sql_query, (fname,lname,))
     
     # Grab a specific user's records
     def get_user(self, user_id):
@@ -70,14 +69,14 @@ class UserModel:
     def del_user(self, user_id):
         sql_query = """
                 DELETE FROM users
-                WHERE user_id is ?;
+                WHERE user_id = ?;
                 """
         with self.db.transaction():
             self.db.execute(sql_query, (user_id,))
 
     # Update user information
     def update(self, record):
-        sql_query = """"
+        sql_query = """
                 UPDATE users
                 SET first_name = ?,
                 last_name = ?,
@@ -88,10 +87,10 @@ class UserModel:
             self.db.execute(sql_query, record)
 
     # Promote a user role in the table
-    def promote_user(self, user_id, new_role):
+    def promote_user(self, user_id, new_role, username):
         sql_query ="""
                 UPDATE users
-                SET role = ?,
+                SET role = ?, username = ?
                 WHERE user_id = ?;
                 """
         with self.db.transaction():
@@ -105,7 +104,7 @@ class UserModel:
         hashed_pw = bcrypt.hashpw(bytes_pw, bcrypt.gensalt())
         sql_query = """
                 UPDATE users
-                SET password = ?,
+                SET password = ?
                 WHERE user_id = ?;
                 """
         with self.db.transaction():
@@ -119,3 +118,16 @@ class UserModel:
         # Converts and checks the password entered against the stored password
         result = bcrypt.checkpw(entered_pw.encode('utf-8'), user_stored_pw)
         return result
+    
+    def row_to_user(self, row) -> User | None:
+        if not row:
+            return None
+        
+        return User(
+            user_id = row[0],
+            first_name = row[1],
+            last_name = row[2],
+            email = row[3],
+            role = row[4],
+            username = row[6]
+        )

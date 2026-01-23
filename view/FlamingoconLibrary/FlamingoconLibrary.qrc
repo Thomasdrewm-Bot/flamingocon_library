@@ -1,0 +1,12 @@
+<RCC>
+    <qresource>
+        <file>FlamingoconLibrary.qmlproject</file>
+        <file>FlamingoconLibrary/Constants.qml</file>
+        <file>FlamingoconLibrary/EventListModel.qml</file>
+        <file>FlamingoconLibrary/EventListSimulator.qml</file>
+        <file>FlamingoconLibrary/qmldir</file>
+        <file>FlamingoconLibraryContent/App.qml</file>
+        <file>FlamingoconLibraryContent/Screen01.ui.qml</file>
+        <file>qtquickcontrols2.conf</file>
+    </qresource>
+</RCC>

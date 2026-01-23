@@ -9,8 +9,9 @@ class GameModel:
             self.db.execute("""
                 CREATE TABLE IF NOT EXISTS games (
                             game_id INTEGER PRIMARY KEY,
-                            name VARCHAR(100) NOT NULL,
-                            status ENUM('Available', 'Checked Out') NOT NULL
+                            title VARCHAR(100) NOT NULL,
+                            status ENUM('Available', 'Checked Out') NOT NULL,
+                            barcode VARCHAR(255)
                             );                        
                             """)
 

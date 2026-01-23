@@ -1,4 +1,5 @@
 from controller.MainController import MainController
+from view.MainView import MainView
 import sqlite3
 
 def main():

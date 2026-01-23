@@ -32,5 +32,5 @@ class EventModel:
         return self.db.fetchall("SELECT * FROM events;")
     
     def get_event(self, event_id):
-        return self.db.fetchone("SELECT * FROM events WHERE event_id = ?", (event_id,))
+        return self.db.fetchone("SELECT * FROM events WHERE event_id = ?;", (event_id,))
     
