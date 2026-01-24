@@ -1,4 +1,4 @@
-class TransactionModel:
+class TransactionRepos:
     def __init__(self,db):
         self.db = db
 

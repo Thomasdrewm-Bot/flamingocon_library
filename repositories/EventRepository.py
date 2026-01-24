@@ -1,4 +1,4 @@
-class EventModel:
+class EventRepos:
     def __init__(self,db):
         self.db = db
 

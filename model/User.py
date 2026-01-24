@@ -5,8 +5,7 @@ class User:
             first_name: str,
             last_name: str,
             email: str,
-            role: str ,
-            username: str | None
+            role: str
             ):
         
         self.user_id = user_id
@@ -14,7 +13,6 @@ class User:
         self.last_name = last_name
         self.email = email
         self.role = role
-        self.username = username
 
 
     @property
@@ -23,5 +21,8 @@ class User:
     
     def full_name(self):
         return f"{self.first_name} {self.last_name}"
+    
+    def id(self):
+        return self.user_id
         
 

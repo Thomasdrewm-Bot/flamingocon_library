@@ -1,6 +1,7 @@
 import bcrypt
+from model.User import User
 
-class UserModel:
+class UserRepos:
     def __init__(self,db):
         self.db = db
 
@@ -13,21 +14,22 @@ class UserModel:
                             first_name VARCHAR(50) NOT NULL,
                             last_name VARCHAR(50) NOT NULL,
                             email VARCHAR(255) NOT NULL,
-                            role ENUM('Guest', 'Volunteer', 'Staff', 'Staff-Admin') NOT NULL DEFAULT 'Guest',
+                            role NOT NULL DEFAULT 'Guest'
+                            check (role in ('Guest', 'Volunteer', 'Staff', 'Staff-Admin')),
                             password BLOB,
                             username VARCHAR(50),
                             LastUpdated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                             );                        
                             """)
 
-     # add users to the table   
-    def add(self, new_user: tuple = ()):
+     # Create
+    def add(self, first_name, last_name, email):
         sql_query = """
             INSERT INTO users (first_name, last_name, email)
             VALUES (?, ?, ?);
             """
         with self.db.transaction():
-            self.db.execute(sql_query, new_user)
+            self.db.execute(sql_query, (first_name, last_name, email,))
 
     # Bulk add users
     def bulk_add(self, users):
@@ -40,7 +42,8 @@ class UserModel:
                 users
             )
 
-    # Get all users from the table
+    # Read
+    # Get all users
     def get_all_users(self):
         return self.db.fetchall("SELECT * FROM users;")
         
@@ -57,25 +60,27 @@ class UserModel:
             return self.db.fetchall(sql_query, (fname,lname,))
     
     # Grab a specific user's records
-    def get_user(self, user_id):
-        sql_query = """
-                SELECT *
-                FROM users
-                WHERE user_id = ?;
-                """
-        return self.db.fetchone(sql_query, (user_id,))
+    def get_by_user_id(self, user_id):
+        return self.db.fetchone("SELECT * FROM users WHERE user_id = ?;", (user_id,))
+    
+    # Get login users
+    def get_log_in_users(self):
+        user_list = self.deb.fetchall("SELECT * FROM users WHERE role <> ? ORDER BY name ASC;", ('Guest',))
+        for users in user_list:
+
             
-    # Delete a user from the table.
-    def del_user(self, user_id):
-        sql_query = """
-                DELETE FROM users
-                WHERE user_id = ?;
-                """
+
+
+
+    # Delete
+    def delete_user(self, user_id):
         with self.db.transaction():
-            self.db.execute(sql_query, (user_id,))
+            self.db.execute("DELETE FROM users WHERE user_id = ?;", (user_id,))
+
+
 
     # Update user information
-    def update(self, record):
+    def update(self, f_name, l_name, email, user_id):
         sql_query = """
                 UPDATE users
                 SET first_name = ?,
@@ -84,13 +89,15 @@ class UserModel:
                 WHERE user_id = ?;
                 """
         with self.db.transaction():
-            self.db.execute(sql_query, record)
+            self.db.execute(sql_query, (f_name, l_name, email, user_id,))
+
+
 
     # Promote a user role in the table
     def promote_user(self, user_id, new_role, username):
         sql_query ="""
                 UPDATE users
-                SET role = ?, username = ?
+                SET role = ?
                 WHERE user_id = ?;
                 """
         with self.db.transaction():
