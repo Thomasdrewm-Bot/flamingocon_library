@@ -15,105 +15,144 @@ class UserRepos:
                             last_name VARCHAR(50) NOT NULL,
                             email VARCHAR(255) NOT NULL,
                             role NOT NULL DEFAULT 'Guest'
-                            check (role in ('Guest', 'Volunteer', 'Staff', 'Staff-Admin')),
+                                check (role in ('Guest','Volunteer','Staff','Staff-Admin')),
                             password BLOB,
-                            username VARCHAR(50),
-                            LastUpdated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                            can_login INTEGER NOT NULL DEFAULT 0
+                                CHECK (can_login IN (0,1)),
+                            last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                             );                        
                             """)
 
-     # Create
+     # ---------------Create---------------
     def add(self, first_name, last_name, email):
-        sql_query = """
-            INSERT INTO users (first_name, last_name, email)
-            VALUES (?, ?, ?);
-            """
         with self.db.transaction():
-            self.db.execute(sql_query, (first_name, last_name, email,))
-
-    # Bulk add users
-    def bulk_add(self, users):
-        with self.db.transaction():
-            self.db.executemany(
+            self.db.execute(
                 """
                 INSERT INTO users (first_name, last_name, email)
                 VALUES (?, ?, ?);
                 """,
+                (first_name, last_name, email)
+            )
+
+    # Bulk add users
+    def bulk_add(self, users):
+        with self.db.transaction():
+            self.db.executemany("""
+                    INSERT INTO users (first_name, last_name, email)
+                    VALUES (?, ?, ?);
+                """,
                 users
             )
 
-    # Read
+    # ---------------Read---------------
+
     # Get all users
-    def get_all_users(self):
-        return self.db.fetchall("SELECT * FROM users;")
+    def get_all_users(self) -> list[User]:
+        rows = self.db.fetchall("""
+                SELECT user_id, first_name, last_name, email, role
+                FROM users
+                ORDER BY last_name, first_name;
+            """
+        )
+        return [User.from_row(row) for row in rows]
         
     # Search for users by name
-    def search_by_name(self, fname, lname):
-            fname = f"%{fname}%"
-            lname = f"%{lname}%"
-            sql_query = """
-                SELECT *
+    def search_by_name(self, fname, lname) -> list[User]:
+            rows = self.db.fetchall("""
+                    SELECT user_id, first_name, last_name, email, role
+                    FROM users
+                    WHERE first_name LIKE ?
+                    AND last_name LIKE ?;
+                """,
+                (f"%{first_name}%", f"%{last_name}%")
+            )
+            return [User.from_row(row) for row in rows]
+    
+    # Get login users
+    def get_login_users(self) -> list[User]:
+        rows = self.db.fetchall("""
+                SELECT
+                    user_id,
+                    first_name,
+                    last_name,
+                    email,
+                    role
                 FROM users
-                WHERE first_name LIKE '?'
-                AND last_name LIKE '?';
-                """
-            return self.db.fetchall(sql_query, (fname,lname,))
+                WHERE can_login = 1
+                ORDER BY last_name, first_name;
+            """)
+        return [User.from_row(row) for row in rows]
     
     # Grab a specific user's records
-    def get_by_user_id(self, user_id):
-        return self.db.fetchone("SELECT * FROM users WHERE user_id = ?;", (user_id,))
+    def get_by_user_id(self, user_id) -> User | None:
+        row = self.db.fetchone("""
+                SELECT user_id, first_name, last_name, email, role
+                FROM users
+                WHERE user_id = ?;
+            """, (user_id,))
+        return User.from_row(row) if row else None
 
-
-    # Delete
-    def delete_user(self, user_id):
-        with self.db.transaction():
-            self.db.execute("DELETE FROM users WHERE user_id = ?;", (user_id,))
-
-
+    # ---------------Update---------------
 
     # Update user information
-    def update(self, f_name, l_name, email, user_id):
-        sql_query = """
-                UPDATE users
-                SET first_name = ?,
-                last_name = ?,
-                email = ?
-                WHERE user_id = ?;
-                """
+    def update(self, first_name, last_name, email, user_id):
         with self.db.transaction():
-            self.db.execute(sql_query, (f_name, l_name, email, user_id,))
+            self.db.execute("""
+                    UPDATE users
+                    SET first_name = ?,
+                    last_name = ?,
+                    email = ?
+                    WHERE user_id = ?;
+                """,
+                (first_name, last_name, email, user_id)
+            )
 
 
 
     # Promote a user role in the table
-    def promote_user(self, user_id, new_role, username):
-        sql_query ="""
-                UPDATE users
-                SET role = ?
-                WHERE user_id = ?;
-                """
+    def promote_user(self, user_id, new_role):
         with self.db.transaction():
-            self.db.execute(sql_query, (new_role, user_id,))
+            self.db.execute("""
+                    UPDATE users
+                    SET role = ?, can_login = 1
+                    WHERE user_id = ?;
+                """,
+                (new_role, user_id)
+            )
 
     # Set user password when given a role that can log in.
-    def set_pw(self, user_id, pw):
-        # Convert the password into bytes, necessary for bcrypt
-        bytes_pw = pw.encode('utf-8')
-        # Hash the password with bcrypt
-        hashed_pw = bcrypt.hashpw(bytes_pw, bcrypt.gensalt())
-        sql_query = """
-                UPDATE users
-                SET password = ?
-                WHERE user_id = ?;
-                """
+    def set_password(self, user_id, password):
+        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         with self.db.transaction():
-            self.db.execute(sql_query, (hashed_pw, user_id,))
+            self.db.execute(
+                "UPDATE users SET password = ? WHERE user_id = ?;",
+                (hashed, user_id)
+            )
 
     # Verify the user password, return true or false
-    def verify_pw(self, user_id, entered_pw):
+    def verify_pw(self, user_id, entered_password) -> bool:
+
         # grabs the stored password
-        user_stored_pw = self.db.fetchone("SELECT password FROM users WHERE user_id = ?;", (user_id,))
+        row = self.db.fetchone(
+            "SELECT password FROM users WHERE user_id = ?;", 
+            (user_id,)
+            )
+        
+        # Checks if a valid record was even returned first
+        if not row or not row["password"]:
+            return False
 
         # Converts and checks the password entered against the stored password
-        result = bcrypt.checkpw(entered_pw.encode('utf-8'), user_stored_pw)
-        return result
+        return bcrypt.checkpw(
+            entered_password.encode('utf-8'),
+            row["password"]
+        )
+    
+    # ---------------Delete---------------
+    
+    def delete_user(self, user_id):
+        with self.db.transaction():
+            self.db.execute(
+                "DELETE FROM users WHERE user_id = ?;",
+                (user_id,)
+            )
