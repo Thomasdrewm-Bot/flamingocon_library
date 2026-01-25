@@ -54,22 +54,14 @@ class UserRepos:
             sql_query = """
                 SELECT *
                 FROM users
-                WHERE first_name LIKE ?
-                AND last_name LIKE ?;
+                WHERE first_name LIKE '?'
+                AND last_name LIKE '?';
                 """
             return self.db.fetchall(sql_query, (fname,lname,))
     
     # Grab a specific user's records
     def get_by_user_id(self, user_id):
         return self.db.fetchone("SELECT * FROM users WHERE user_id = ?;", (user_id,))
-    
-    # Get login users
-    def get_log_in_users(self):
-        user_list = self.deb.fetchall("SELECT * FROM users WHERE role <> ? ORDER BY name ASC;", ('Guest',))
-        for users in user_list:
-
-            
-
 
 
     # Delete
@@ -125,16 +117,3 @@ class UserRepos:
         # Converts and checks the password entered against the stored password
         result = bcrypt.checkpw(entered_pw.encode('utf-8'), user_stored_pw)
         return result
-    
-    def row_to_user(self, row) -> User | None:
-        if not row:
-            return None
-        
-        return User(
-            user_id = row[0],
-            first_name = row[1],
-            last_name = row[2],
-            email = row[3],
-            role = row[4],
-            username = row[6]
-        )
