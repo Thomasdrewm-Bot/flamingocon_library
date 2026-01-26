@@ -130,7 +130,7 @@ class UserRepos:
             )
 
     # Verify the user password, return true or false
-    def verify_pw(self, user_id, entered_password) -> bool:
+    def verify_pw(self, user_id, entered_password) -> User | None:
 
         # grabs the stored password
         row = self.db.fetchone(
@@ -140,13 +140,19 @@ class UserRepos:
         
         # Checks if a valid record was even returned first
         if not row or not row["password"]:
-            return False
+            return None
+        
+        # create user from User model with the row data
+        user = User.from_row(row)
 
-        # Converts and checks the password entered against the stored password
-        return bcrypt.checkpw(
+        # Converts and checks the password entered against the stored password, returns none if noth authorized
+        if not bcrypt.checkpw(
             entered_password.encode('utf-8'),
             row["password"]
-        )
+        ):
+            return None
+        
+        return user
     
     # ---------------Delete---------------
     

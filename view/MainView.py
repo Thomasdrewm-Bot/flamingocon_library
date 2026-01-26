@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import QApplication, QMainWindow, QPushButton
 
 
 
-class MainWindow(QMainWindow):
+class MainView(QMainWindow):
     def __init__(self):
         super().__init__()
         
@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
 
 app = QApplication([])
 
-window = MainWindow()
+window = MainView()
 window.show()
 
 app.exec()

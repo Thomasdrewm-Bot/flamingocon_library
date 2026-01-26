@@ -2,7 +2,7 @@ import sqlite3
 from contextlib import contextmanager
 
 class Database:
-    def __init__(self, db_path="flamingocon_lib"):
+    def __init__(self, db_path="flamingocon_library"):
         self.connection = sqlite3.connect(db_path)
         self.connection.row_factory = sqlite3.Row
 
